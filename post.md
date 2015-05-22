@@ -10,7 +10,7 @@ At their core, directives are functions which runs when a DOM element they have 
 
 ##2.1 Anatomy of a directive, at 10,000 feet
 
-Lets start, with a directives type signature:
+Lets start, with a directive's type signature:
 
     injectablesList -> configObject
     
