@@ -151,7 +151,7 @@ The second method of passing variables onto an isolate scope is commonly referre
       return {
         restrict: 'E',
         scope: {
-          twoWay: '@'
+          twoWay: '='
         },
         template: '<div>{{ oneWay }}</div>',
         link: function (scope) {
