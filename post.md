@@ -1,14 +1,14 @@
-#1. Introduction
+## 1. Introduction
 AngularJS exposes large amounts of complex functionality, and lends itself very well to writing reusable, generic code.
 This article will be a detailed, and heavily opinionated look at what is Angular's Unit of reuse, directives, with an eye towards explaining their many frequently confusing features.
 
-##1.1 Requirements, Assumptions
+### 1.1 Requirements, Assumptions
 This article is going to assume some familiarity with the JavaScript programming language and AngularJS. To really get the most out of this article, it would be best if you had already attempted to do some work in AngularJS, but had yet to really attempt to modularize and reuse, or dive deep into directives. The details of the language outside of when it is directly applicable to the subject at hand (e.g. the digest lifecycle, dependency injection), will NOT be expounded upon.
 
-#2. Directives at 10,000 feet
+## 2. Directives at 10,000 feet
 At their core, directives are functions which run when a DOM element that they have been attached to is encountered in the DOM tree.
 
-##2.1 Anatomy of a directive, at 10,000 feet
+### 2.1 Anatomy of a directive, at 10,000 feet
 
 Lets start with a directive's type signature:
 
@@ -16,7 +16,8 @@ Lets start with a directive's type signature:
 
 and proceed on to an annotated, non functional example:
 
-    angular.module('annotated').directive('demoOne', ['injectable', function (injectable) { //The directive definition function, follows standard dependency injection rules
+```` javascript 
+angular.module('annotated').directive('demoOne', ['injectable', function     (injectable) { //The directive definition function, follows standard dependency injection rules
     // Code can be run here before returning
       return { //Directives must return an object. Technically its entire contents is optional
         restrict: 'EACM', // This represents the DOM type of the directive
@@ -39,31 +40,38 @@ and proceed on to an annotated, non functional example:
         priority: '1000' // Compilation priority,
         terminal: false // Is this the last compileable directive
         }
-      }]);
+     }]);
+````
       
-Well, now we've cleared that up, our work here is done.
-Oh, right.....
+Well, now we've cleared that up, our work here is done. Oh, right.
 
-#3.Directives in depth
+## 3.Directives in depth
 The above directive contains three fundamental building blocks. The first, is the directive signature. This is the annotated function and injectable definition attached to a module. In the code sample above:
 
-    angular.module('annotated').directive('demo-one', ['injectable', function (injectable) { // The directive definition function, follows standard dependency injection rules
+```` javascript
+angular.module('annotated').directive('demo-one', ['injectable', function (injectable) { 
+    // The directive definition function, follows standard dependency injection rules
+}
+````
 
 The directive signature follows Angular's standard dependency injection syntax and rules.
 The second is the directive function's body prior to the return statement. This is a convenient place to define functions reused within different inner functions of your directive, or to configure things for use.
 
 The third and final part of the directive is the directives mandatory returned object. This object instructs the framework on how to construct a directive when the snake-cased version of the directives name (`demo-one` in our current case) is encountered in the DOM.
 
-##3.1 The Directive Definition Object
+### 3.1 The Directive Definition Object
 This is where the meat of the directive's functionality lives, and where we will be spending the vast majority of our time.
 
-###3.1.1 restrict
+#### 3.1.1 restrict
 The first and simplest configuration parameter available on the returnable object is the `restrict` key. It accepts one (or multiple) of the letters `EACM`, representing `Element, Attribute, Class`, and `Meta`. This is the specific type of element marker that AngularJS will accept for this directive. Specifically, given our sample directive signature
-    angular.module('sample').directive('demoOne', function () {
-      return {
+
+```` javascript
+angular.module('sample').directive('demoOne', function () {
+    return {
         restrict: 'E'
-      }
     }
+}
+````
 
 `restrict: 'E'` means that the directive will trigger in the following circumstance: `<demo-one/>`  
 `restrict: 'A'` means that the directive will trigger in the following circumstance: `<div demo-one/>`  
@@ -78,44 +86,53 @@ I also similiarly dislike meta restricted directives as they pollute the codebas
 In general attribute level directives are more flexible then element level directives as they can be composed with ease simply by putting multiple directives on the same element.    
 A more general discussion of this will follow in sections 3.1.6 and 4
 
-####3.1.2 Templating
+#### 3.1.2 Templating
 There are two keys that can be passed into a Directive Definition Object to indicate its HTML structure. The first is the `template` key which accepts an HTML string such as `<div> I am in your Directive Definition Object rendering your content</div>` directly. The second is a `templateUrl` key which accepts a path to an html file. By default these will override any DOM originally nested within the directive. So:
 
-    <my-awesome-directive><div> Content was here, but now it ain't</div></my-awesome-directive>
+```` markup
+<my-awesome-directive>
+    <div>Content was here, but now it ain't</div>
+</my-awesome-directive>
+````
 
 Will override the inner `div` with whatever is defined on the `template` or `templateUrl` of `<my-aweosme-directive>`. If you would like to see how that can be overridden, scroll to section 3.1.4.
 
-###3.1.3 Scope
+#### 3.1.3 Scope
 The scope parameter of the Directive Definition Object can take three values:
 1) `scope: false`. This is the default value and instructs your directive to share its scope with the parent scope. Any changes done on this scope will automatically be done to the parent also.
 2) `scope: true`. This instructs the directive to create a new child scope which inherits from the parent prototypically. An in depth discussion of what prototypical inheritance means specifically is out of the scope of this article, the salient point is this:
 Given the following DOM:
-    
-    <body ng-app="demo">
-      <div ng-controller="outerCtrl">
-        <div>{{ outerVal }}</div>
-        <div>{{ model.innerVal }}</div>
-        <div>{{ innerModel.innerVal }}</div>
-        <inner-dir></inner-dir>
-      </div>
-    </body>
+
+```` markup
+<body ng-app="demo">
+  <div ng-controller="outerCtrl">
+    <div>{{ outerVal }}</div>
+    <div>{{ model.innerVal }}</div>
+    <div>{{ innerModel.innerVal }}</div>
+    <inner-dir></inner-dir>
+  </div>
+</body>
+```` 
 and the following javascript:
-  
-    angular.module('demo', []).controller('outerCtrl', function ($scope) {
-      $scope.outerVal = "outer";
-      $scope.model = {innerVal: "inner"};
-    })
-    .directive('innerDir', function () {
-      return {
-        restrict: 'E',
-        scope: true,
-        link: function (scope) {
-          scope.outerVal = "inner";
-          scope.model.innerVal = "inner2";
-          scope.innerModel = {innerVal: "innerVal"};
-        }
-      }
-    });
+
+```` javascript
+angular.module('demo', []).controller('outerCtrl', function ($scope) {
+  $scope.outerVal = "outer";
+  $scope.model = {innerVal: "inner"};
+})
+.directive('innerDir', function () {
+  return {
+    restrict: 'E',
+    scope: true,
+    link: function (scope) {
+      scope.outerVal = "inner";
+      scope.model.innerVal = "inner2";
+      scope.innerModel = {innerVal: "innerVal"};
+    }
+  }
+});
+````
+
 The printed result will be `outer` and `inner2`, and nothing. Said a more generic way, references will be shared from the outer scope to the inner scope, but not from the inner scope outwards.
 A running demonstration can be found here:
 http://plnkr.co/edit/7OrA3Sw6uxOixkF22UOA
@@ -127,18 +144,20 @@ A quick aside: Astute readers may notice the `link` key used without further dis
 ####3.1.3.1 Isolate Scope
 Isolate Scope is a way to pass individual things from the parent scope into the directive scope, without inheriting everything. There are three methodologies for passing scope properties. The first is attribute binding also known as one way binding, and is done with an `@` sign:
 
-    .directive('attributeBound', function () {
-      return {
-        restrict: 'E',
-        scope: {
-          oneWay: '@'
-        },
-        template: '<div>{{ oneWay }}</div>',
-        link: function (scope) {
-          scope.oneWay = 'newValue';
-        }
-      }
+```` javascript
+.directive('attributeBound', function () {
+  return {
+    restrict: 'E',
+    scope: {
+      oneWay: '@'
+    },
+    template: '<div>{{ oneWay }}</div>',
+    link: function (scope) {
+      scope.oneWay = 'newValue';
     }
+  }
+}
+````
 then calling this directive like so:
     <attribute-bound one-way='{{ outerValue }}'/>
 Will bind a variable `scope.oneWay` in the directive to the value of `scope.$parent.outerValue`, at directive compilation time and will NOT propagate changes to the value out onto the outer scope. The important thing to realize with one way bindings, is that they will *always* occur as a string. What that means in practice is that if you would like to pass the contents of a variable you *must* interpolate it as demonstrated above, since merely setting it to `one-way='outerValue'` would pass the literal string, `outerValue`. The second is that if the contents of the interpolated variable is an object or an array, you must apply `JSON.parse` in your directive, like so:
@@ -728,7 +747,7 @@ It is also an important observation that putting multiple directives on the same
 ##4.3 Shared attributes
 Another common strategy is to use the `attrs` parameter into the linking function, in conjunction with `attrs.$observe` to communicate among sibling directives (recall here, that a sibling directive is a directive on the same element as another directive). The important thing to remember here, is that because the attrs object is shared between sibling directives by reference, changes in one place WILL propagate to all others. While this is a powerful tool, I find it does not play particularly nicely with isolate scopes. Since isolate scopes read off of the directive's attributes, relying on the `attrs` object tends to blow that out of the water. As such, this is not a practice I make much use of, especially given that everything it achieves can be similarly achieved through other means.
 
-#5 Conclusion/Summary
+## 5 Conclusion/Summary
 Isolate Scopes are awesome. You can use it to wrap directives in a reusable way. With them you can lift the same directive into different parts of your application, passing scopes in from the outside.  
 Transclusion lets you pull in custom widgets and have your Directive DOM be flexible, letting you have parts of your directive change completely dynamically.    
 Directive Controllers are an excellent way to expose universal APIs, allowing you to wrap common functionality into independent widgets that can be attached to other arbitrary directives.   
