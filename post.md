@@ -653,7 +653,7 @@ Working Example: http://plnkr.co/edit/xGozv2RHZz7CH0jFuyvA
 
 It is worth noting, that in this example the directives were not on the same element to showcase the configuration syntax of `^?`. However by dropping one (or both) the directive would only look for its controller among its sibling directives, directives that share the same element. It goes without saying this is only possible, if at least one is an attribute directive.
 
-#4 Other Angular Composition/Reuse Strategies
+##4 Other Angular Composition/Reuse Strategies
 So what other composition strategies are there? We've talked about isolate scope as a tool for self sustainability and reuse, and we've talked about controllers and require as tools of composition.
 
 There are several patterns worth mentioning. 
